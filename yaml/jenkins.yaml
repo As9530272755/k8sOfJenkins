@@ -1,0 +1,58 @@
+kind: Deployment
+#apiVersion: extensions/v1beta1
+apiVersion: apps/v1
+metadata:
+  labels:
+    app: jenkins-jenkins
+  name: jenkins-jenkins-deployment
+  namespace: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins-jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins-jenkins
+    spec:
+      containers:
+      - name: jenkins-jenkins-container
+        image: hub.zhangguiyuan.com/baseimage/jenkins:v2.190.1 
+        #imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+          name: http
+        volumeMounts:
+        - name: jenkins-datadir-jenkins
+          mountPath: "/apps/jenkins/jenkins-data/"
+        - name: jenkins-root-datadir
+          mountPath: "/root/.jenkins"
+      volumes:
+        - name: jenkins-datadir-jenkins
+          persistentVolumeClaim:
+            claimName: jenkins-datadir-pvc
+        - name: jenkins-root-datadir
+          persistentVolumeClaim:
+            claimName: jenkins-root-data-pvc
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: jenkins-jenkins
+  name: jenkins-jenkins-service
+  namespace: jenkins
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+    nodePort: 38080
+  selector:
+    app: jenkins-jenkins
